@@ -26,7 +26,10 @@ One final question decides it: answer correctly and you win, miss it and you go 
 - Full question preview on the setup screen, useful for checking coverage before a lesson
 - Animated token movement, turn order panel, and move log
 - Sound effects generated with the Web Audio API, with a mute toggle
-- Safeguards against losing a game in progress: a styled confirmation before resetting, and a browser prompt before a refresh or tab close
+- Safeguards against losing a game in progress: a styled confirmation before resetting, a browser prompt before a refresh or tab close, and a blocked pull-to-refresh gesture on tablets
+- Automatic save and silent resume.
+The game is written to `localStorage` at every turn boundary, so a refresh, an accidental tab close, or the browser evicting a backgrounded tab picks up exactly where the class left off.
+The save is cleared when a game is won or reset
 
 ## Running locally
 

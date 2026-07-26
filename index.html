@@ -22,7 +22,10 @@
   }
 
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  /* iOS Safari ignores beforeunload, so a swipe-down pull-to-refresh would wipe a
+     game in progress with no warning. Blocking the overscroll gesture is the only
+     guard that works there. Needed on html for Safari and on body for Chrome. */
+  html,body{margin:0;padding:0;overscroll-behavior-y:none;}
   body{
     background:var(--cream);
     background-image:
@@ -704,6 +707,7 @@ document.getElementById('startBtn').addEventListener('click', ()=>{
   renderAll();
   ensureAudio();
   startBgMusic();
+  saveGame();
 });
 
 /* ---------------- BOARD GEOMETRY ---------------- */
@@ -1043,6 +1047,7 @@ function nextTurn(){
   } while(players[currentIndex].finished && attempts <= players.length);
   document.getElementById('moveLog').textContent = "";
   renderAll();
+  saveGame();
 }
 
 /* ---------------- QUIZ MODAL ---------------- */
@@ -1151,6 +1156,7 @@ document.getElementById('continueBtn').addEventListener('click', ()=>{
 /* ---------------- WIN / RESET ---------------- */
 function showWin(player){
   stopBgMusic();
+  clearSavedGame();   // nothing left to resume
   playWin();
   document.getElementById('gameScreen').classList.add('hidden');
   document.getElementById('winnerName').textContent = `${player.name} wins!`;
@@ -1159,6 +1165,7 @@ function showWin(player){
 
 function resetToSetup(){
   stopBgMusic();
+  clearSavedGame();
   document.getElementById('winScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.add('hidden');
   document.getElementById('setupScreen').classList.remove('hidden');
@@ -1167,6 +1174,61 @@ function resetToSetup(){
 function gameInProgress(){
   return !document.getElementById('gameScreen').classList.contains('hidden');
 }
+
+/* ---------------- SAVED GAME ----------------
+   iOS Safari has no beforeunload, so on an iPad a refresh cannot be intercepted
+   at all. Instead of fighting it, the game is written to localStorage at every
+   turn boundary and picked back up silently on the next load. */
+const SAVE_KEY = 'piano-snakes-ladders/game-v1';
+
+function saveGame(){
+  if(!gameInProgress()) return;
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      players: players.map(p=>({ id:p.id, name:p.name, color:p.color,
+                                 initials:p.initials, position:p.position, finished:p.finished })),
+      currentIndex, usedQuestions, ladders:LADDERS, snakes:SNAKES
+    }));
+  }catch(e){
+    // Private browsing or a full quota. A lost save is not worth breaking the lesson over.
+  }
+}
+
+function clearSavedGame(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+}
+
+function restoreSavedGame(){
+  let data = null;
+  try{ data = JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(e){ data = null; }
+
+  const valid = data
+    && Array.isArray(data.players) && data.players.length >= 2 && data.players.length <= 15
+    && data.players.every(p=>typeof p.name==='string' && Number.isInteger(p.position)
+                             && p.position>=1 && p.position<=25)
+    && data.players.some(p=>!p.finished);
+  if(!valid){ clearSavedGame(); return false; }
+
+  players = data.players.map(p=>({ ...p, animating:false }));
+  currentIndex = Number.isInteger(data.currentIndex) && data.currentIndex < players.length
+                 ? data.currentIndex : 0;
+  usedQuestions = Array.isArray(data.usedQuestions) ? data.usedQuestions : [];
+  LADDERS = data.ladders || {};
+  SNAKES  = data.snakes  || {};
+
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  buildBoard();
+  renderAll();
+
+  // Autoplay rules block audio until the page is touched, so the background
+  // music waits for the first tap instead of starting on load.
+  document.addEventListener('pointerdown', ()=>{ if(soundEnabled) startBgMusic(); }, {once:true});
+  return true;
+}
+
+// pagehide is the one teardown hook iOS fires reliably, including on tab eviction.
+window.addEventListener('pagehide', saveGame);
 
 // A refresh or an accidental tab close wipes the whole game, so ask first.
 // The dialog is the browser's own — its wording cannot be customised.
@@ -1195,6 +1257,9 @@ document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape' && !confirmModal.classList.contains('hidden')) closeConfirm();
 });
 document.getElementById('playAgainBtn').addEventListener('click', resetToSetup);
+
+// Last thing to run: pick up an interrupted game, if there is one.
+restoreSavedGame();
 </script>
 </body>
 </html>
