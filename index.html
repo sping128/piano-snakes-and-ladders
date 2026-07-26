@@ -276,6 +276,7 @@
   }
   .modal-tag.ladder{background:var(--gold);color:var(--ebony);}
   .modal-tag.snake{background:var(--burgundy);}
+  .modal-tag.finish{background:var(--sage);}
   .modal h3{font-family:'Fraunces',serif;font-size:19px;margin:0 0 18px;line-height:1.4;}
   .quiz-visual{display:flex;justify-content:center;align-items:center;margin:0 0 14px;min-height:0;}
   .quiz-visual:empty{margin:0;}
@@ -312,7 +313,7 @@
     <div class="eyebrow"><a href="https://www.facebook.com/VorakarnsPianoStudio" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">Vorakarn's Piano Studio</a></div>
     <h1>Piano Snakes &amp; Ladders</h1>
     <div class="stave"></div>
-    <p class="subtitle">A 25-square race for up to 15 players. Land on a ladder and answer correctly to climb — land on a snake and answer correctly to avoid the slide.</p>
+    <p class="subtitle">A 25-square race for up to 15 players. Land on a ladder and answer correctly to climb — land on a snake and answer correctly to avoid the slide. Reach square 25 and one last question decides the winner.</p>
   </header>
 
   <!-- SETUP SCREEN -->
@@ -352,8 +353,8 @@
         <ul>
           <li><span class="legend-swatch" style="background:var(--gold);"></span><strong>Ladder</strong> — answer the piano question right, climb straight up. Miss it, and you simply stay put.</li>
           <li><span class="legend-swatch" style="background:var(--burgundy);"></span><strong>Snake</strong> — answer right and you're safe on your square. Miss it, and you slide down to the tail.</li>
-          <li>Roll the die, move that many squares, first to reach square 25 wins.</li>
-          <li>Overshoot the last square? You land exactly on 25 — no exact-count rule, keeps things quick.</li>
+          <li>Roll the die and move that many squares. Overshoot the last square? You land exactly on 25 — no exact-count rule, keeps things quick.</li>
+          <li><span class="legend-swatch" style="background:var(--sage);"></span><strong>Square 25</strong> — one final question decides it. Answer right and you win. Miss it and you go back to the square you came from, ready to try again next turn.</li>
           <li>Great for turn-taking in class: one shared screen, students roll in order.</li>
         </ul>
       </div>
@@ -498,7 +499,7 @@ function generateBoardFeatures(nLadders, nSnakes){
 let players = [];
 let currentIndex = 0;
 let usedQuestions = [];
-let pendingEvent = null; // {type:'ladder'|'snake', playerId, target, stay}
+let pendingEvent = null; // {type:'ladder'|'snake'|'finish', playerId, target, stay}
 
 /* ---------------- SOUND ---------------- */
 let audioCtx = null;
@@ -877,7 +878,10 @@ function renderAll(){
     list.appendChild(row);
   });
 
-  setDiePickerEnabled(true);
+  // Only accept a roll when nothing is moving and no question is on screen,
+  // otherwise a stray click mid-animation gets counted as an extra turn.
+  const quizOpen = !document.getElementById('quizModal').classList.contains('hidden');
+  setDiePickerEnabled(!quizOpen && !players.some(p=>p.animating));
 }
 
 function setDiePickerEnabled(enabled){
@@ -995,9 +999,8 @@ document.getElementById('diePicker').addEventListener('click', (e)=>{
   animateStepMove(player, from, to, ()=>{
     document.getElementById('moveLog').textContent = `${player.name} rolled a ${roll} → square ${to}`;
     if(to===25){
-      player.finished = true;
-      renderAll();
-      showWin(player);
+      // Final square: answer correctly to win, miss it and go back to where you came from.
+      openQuiz('finish', player, from, 25);
       return;
     }
     if(LADDERS[to]!==undefined){
@@ -1034,7 +1037,9 @@ function openQuiz(type, player, target, stayPos){
   const q = pickQuestion();
   const modal = document.getElementById('quizModal');
   const tag = document.getElementById('modalTag');
-  tag.textContent = type==='ladder' ? "Ladder — climb it!" : "Snake — avoid it!";
+  tag.textContent = type==='ladder' ? "Ladder — climb it!"
+                  : type==='snake'  ? "Snake — avoid it!"
+                  : "Final square — answer to win!";
   tag.className = 'modal-tag ' + type;
   document.getElementById('quizVisual').innerHTML = q.visual || '';
   document.getElementById('quizQuestion').textContent = q.q;
@@ -1053,6 +1058,7 @@ function openQuiz(type, player, target, stayPos){
   });
 
   modal.classList.remove('hidden');
+  setDiePickerEnabled(false);
 }
 
 function resolveQuiz(isCorrect, btnEl, optsEl, q, type, player, target, stayPos){
@@ -1074,7 +1080,7 @@ function resolveQuiz(isCorrect, btnEl, optsEl, q, type, player, target, stayPos)
       resultEl.textContent = `Not quite. ${player.name} stays on square ${stayPos}.`;
       resultEl.className='result-msg bad';
     }
-  } else {
+  } else if(type==='snake'){
     if(isCorrect){
       pendingEvent.moveTo = null;
       resultEl.textContent = `Correct! ${player.name} stays safe on square ${stayPos}.`;
@@ -1082,6 +1088,16 @@ function resolveQuiz(isCorrect, btnEl, optsEl, q, type, player, target, stayPos)
     } else {
       pendingEvent.moveTo = target;
       resultEl.textContent = `Oh no — ${player.name} slides down to square ${target}.`;
+      resultEl.className='result-msg bad';
+    }
+  } else {
+    if(isCorrect){
+      pendingEvent.moveTo = null;
+      resultEl.textContent = `Correct! ${player.name} wins the game!`;
+      resultEl.className='result-msg good';
+    } else {
+      pendingEvent.moveTo = target;
+      resultEl.textContent = `Not quite — ${player.name} goes back to square ${target} and can try again next turn.`;
       resultEl.className='result-msg bad';
     }
   }
@@ -1103,7 +1119,7 @@ document.getElementById('continueBtn').addEventListener('click', ()=>{
   };
   if(moveTo!==null && moveTo!==undefined){
     if(type==='ladder') playLadder(); else playSnake();
-    animateGlide(player, player.position, moveTo, type==='snake', finishUp);
+    animateGlide(player, player.position, moveTo, type!=='ladder', finishUp);
   } else {
     renderAll();
     finishUp();

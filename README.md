@@ -13,8 +13,9 @@ Students roll a real physical die and enter the result on screen, so the game st
 Miss it and you stay where you are.
 - **Snake** - answer correctly to stay safe on your square.
 Miss it and you slide down to the tail.
-- First player to reach square 25 wins.
-Overshooting the end still lands you on 25, which keeps rounds short.
+- **Square 25** - reaching the last square does not win the game on its own.
+One final question decides it: answer correctly and you win, miss it and you go back to the square you came from and can try again on your next turn.
+- Overshooting the end still lands you on 25, which keeps rounds short.
 
 ## Features
 
