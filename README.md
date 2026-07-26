@@ -26,6 +26,7 @@ One final question decides it: answer correctly and you win, miss it and you go 
 - Full question preview on the setup screen, useful for checking coverage before a lesson
 - Animated token movement, turn order panel, and move log
 - Sound effects generated with the Web Audio API, with a mute toggle
+- Safeguards against losing a game in progress: a styled confirmation before resetting, and a browser prompt before a refresh or tab close
 
 ## Running locally
 

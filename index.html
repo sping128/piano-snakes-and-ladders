@@ -277,6 +277,16 @@
   .modal-tag.ladder{background:var(--gold);color:var(--ebony);}
   .modal-tag.snake{background:var(--burgundy);}
   .modal-tag.finish{background:var(--sage);}
+  .modal-tag.reset{background:var(--slate);}
+  .confirm-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .confirm-btn{
+    padding:11px 22px;border-radius:10px;border:none;cursor:pointer;
+    font-weight:600;font-family:'Fraunces',serif;font-size:14px;
+  }
+  .confirm-btn.ghost{background:var(--white);color:var(--ebony);border:1.5px solid rgba(34,31,28,0.15);}
+  .confirm-btn.ghost:hover{border-color:var(--gold);}
+  .confirm-btn.danger{background:var(--burgundy);color:var(--ivory);}
+  .confirm-btn.danger:hover{background:var(--burgundy-light);}
   .modal h3{font-family:'Fraunces',serif;font-size:19px;margin:0 0 18px;line-height:1.4;}
   .quiz-visual{display:flex;justify-content:center;align-items:center;margin:0 0 14px;min-height:0;}
   .quiz-visual:empty{margin:0;}
@@ -414,6 +424,18 @@
     <div class="options" id="quizOptions"></div>
     <div class="result-msg" id="quizResult"></div>
     <button class="continue-btn" id="continueBtn">Continue</button>
+  </div>
+</div>
+
+<!-- RESET CONFIRM MODAL -->
+<div class="modal-backdrop hidden" id="confirmModal">
+  <div class="modal">
+    <span class="modal-tag reset">Start over?</span>
+    <h3>This ends the current game and clears every player's square.</h3>
+    <div class="confirm-actions">
+      <button class="confirm-btn ghost" id="confirmCancelBtn">Keep playing</button>
+      <button class="confirm-btn danger" id="confirmResetBtn">Reset game</button>
+    </div>
   </div>
 </div>
 
@@ -1142,7 +1164,36 @@ function resetToSetup(){
   document.getElementById('setupScreen').classList.remove('hidden');
   refreshPreview();
 }
-document.getElementById('resetBtn').addEventListener('click', resetToSetup);
+function gameInProgress(){
+  return !document.getElementById('gameScreen').classList.contains('hidden');
+}
+
+// A refresh or an accidental tab close wipes the whole game, so ask first.
+// The dialog is the browser's own — its wording cannot be customised.
+window.addEventListener('beforeunload', (e)=>{
+  if(!gameInProgress()) return;
+  e.preventDefault();
+  e.returnValue = '';   // still required by some browsers
+});
+
+/* Resetting mid-game throws away every player's progress, so confirm it first.
+   "Play again" on the win screen needs no confirmation — that game is over. */
+const confirmModal = document.getElementById('confirmModal');
+function closeConfirm(){ confirmModal.classList.add('hidden'); }
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  playClick();
+  confirmModal.classList.remove('hidden');
+});
+document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirm);
+document.getElementById('confirmResetBtn').addEventListener('click', ()=>{
+  closeConfirm();
+  resetToSetup();
+});
+confirmModal.addEventListener('click', (e)=>{ if(e.target===confirmModal) closeConfirm(); });
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape' && !confirmModal.classList.contains('hidden')) closeConfirm();
+});
 document.getElementById('playAgainBtn').addEventListener('click', resetToSetup);
 </script>
 </body>
