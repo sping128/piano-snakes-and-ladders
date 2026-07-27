@@ -49,6 +49,7 @@
     font-weight:600;
     margin-bottom:6px;
   }
+  .eyebrow a{color:inherit;text-decoration:none;}
   h1{
     font-family:'Fraunces',serif;
     font-optical-sizing:auto;
@@ -323,7 +324,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow"><a href="https://www.facebook.com/VorakarnsPianoStudio" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">Vorakarn's Piano Studio</a></div>
+    <div class="eyebrow" id="studioName"></div>
     <h1>Piano Snakes &amp; Ladders</h1>
     <div class="stave"></div>
     <p class="subtitle">A 25-square race for up to 15 players. Land on a ladder and answer correctly to climb — land on a snake and answer correctly to avoid the slide. Reach square 25 and one last question decides the winner.</p>
@@ -443,11 +444,41 @@
 </div>
 
 <script>
+/* ============================================================================
+   EVERYTHING A STUDIO NEEDS TO CHANGE LIVES IN THE TWO BLOCKS BELOW:
+     1. STUDIO        — the name and link shown above the title
+     2. QUESTION_BANK — the questions students are asked
+   Nothing further down the file needs editing to rebrand the game.
+   ============================================================================ */
+
+/* ---------------- 1. STUDIO ---------------- */
+const STUDIO = {
+  name: "Vorakarn's Piano Studio",
+  link: "https://www.facebook.com/VorakarnsPianoStudio"   // leave as "" for plain text, no link
+};
+
+function applyStudioBranding(){
+  const el = document.getElementById('studioName');
+  el.textContent = '';
+  document.title = `${STUDIO.name} — Piano Snakes & Ladders`;
+  if(STUDIO.link){
+    const a = document.createElement('a');
+    a.href = STUDIO.link;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = STUDIO.name;
+    el.appendChild(a);
+  } else {
+    el.textContent = STUDIO.name;
+  }
+}
+applyStudioBranding();
+
 /* ---------------- CONFIG ---------------- */
 const COLORS = ["#8B2E3C","#C9A24B","#57795B","#3E6B8A","#8A5CA8","#B8622F","#4A7C6F",
                  "#A34E7C","#6B7A3E","#7A4A6B","#3E5A7A","#B8874A","#5A7A57","#7A3E4A","#3E7A6E"];
 
-/* ---------------- QUESTION BANK ---------------- */
+/* ---------------- 2. QUESTION BANK ---------------- */
 /* Each question is fully self-contained: edit the "visual" SVG markup directly,
    no functions or calculations involved -- just plain numbers/text you can tweak. */
 const QUESTION_BANK = [

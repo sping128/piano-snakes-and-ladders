@@ -45,7 +45,24 @@ open index.html
 The site is served by GitHub Pages from the `main` branch root.
 Any push to `main` redeploys it within about a minute.
 
-## Customising the questions
+## Customising it for a studio
+
+Everything a studio needs to change sits in two clearly marked blocks at the top of the `<script>` in `index.html`.
+Nothing below them needs editing to rebrand the game.
+
+### 1. Branding
+
+```js
+const STUDIO = {
+  name: "Vorakarn's Piano Studio",
+  link: "https://www.facebook.com/VorakarnsPianoStudio"   // leave as "" for plain text, no link
+};
+```
+
+`name` appears above the title and in the browser tab.
+`link` makes that name clickable, and an empty string renders it as plain text for a studio with no page to link to.
+
+### 2. Questions
 
 Questions live in the `QUESTION_BANK` array in `index.html`.
 Each entry looks like this:
