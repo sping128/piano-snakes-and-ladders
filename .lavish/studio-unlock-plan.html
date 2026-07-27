@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Per-Account Studio Config — Implementation Plan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root{
+    --cream:#F5F0E6; --ivory:#FBF8F2; --ebony:#221F1C; --charcoal:#3A3532;
+    --gold:#C9A24B; --gold-light:#E7CE86; --burgundy:#8B2E3C; --burgundy-light:#B85C67;
+    --sage:#57795B; --slate:#6B6560; --white:#FFFFFF;
+    --border: rgba(34,31,28,0.12); --shadow: 0 12px 34px rgba(34,31,28,0.10);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --cream:#1C1917; --ivory:#252220; --ebony:#F1EAE0; --charcoal:#D8CFC2; --slate:#A79E92;
+      --border: rgba(241,234,224,0.12); --shadow: 0 12px 34px rgba(0,0,0,0.45); }
+  }
+  :root[data-theme="dark"]{
+    --cream:#1C1917; --ivory:#252220; --ebony:#F1EAE0; --charcoal:#D8CFC2; --slate:#A79E92;
+    --border: rgba(241,234,224,0.12); --shadow: 0 12px 34px rgba(0,0,0,0.45);
+  }
+  :root[data-theme="light"]{
+    --cream:#F5F0E6; --ivory:#FBF8F2; --ebony:#221F1C; --charcoal:#3A3532; --slate:#6B6560;
+    --border: rgba(34,31,28,0.12); --shadow: 0 12px 34px rgba(34,31,28,0.10);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--cream); color:var(--ebony); font-family:'Inter',sans-serif; font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap{max-width:960px;margin:0 auto;padding:48px 24px 96px;}
+
+  header{text-align:center;margin-bottom:44px;}
+  .eyebrow{ font-size:12px;letter-spacing:0.22em;text-transform:uppercase; color:var(--burgundy);font-weight:600;margin-bottom:8px; }
+  h1{ font-family:'Fraunces',serif;font-weight:700;font-size:36px; margin:0 0 14px;color:var(--ebony);line-height:1.15; }
+  .stave{ width:220px;margin:0 auto 18px;height:20px;
+    background-image: linear-gradient(var(--slate),var(--slate)), linear-gradient(var(--slate),var(--slate)),
+      linear-gradient(var(--slate),var(--slate)), linear-gradient(var(--slate),var(--slate)), linear-gradient(var(--slate),var(--slate));
+    background-repeat:no-repeat; background-size:100% 1px;
+    background-position:0 0, 0 25%, 0 50%, 0 75%, 0 100%; opacity:0.35;
+  }
+  .subtitle{color:var(--slate);font-size:15.5px;max-width:640px;margin:0 auto;}
+
+  section{margin-bottom:36px;}
+  .card{ background:var(--ivory);border-radius:18px;padding:28px 30px; box-shadow:var(--shadow);border:1px solid var(--border); }
+  h2{ font-family:'Fraunces',serif;font-size:22px;margin:0 0 6px;color:var(--ebony); display:flex;align-items:center;gap:10px; }
+  h2 .num{ display:inline-flex;align-items:center;justify-content:center; width:28px;height:28px;border-radius:50%;background:var(--burgundy);color:var(--white); font-size:13px;font-weight:700;flex:none; }
+  .section-sub{color:var(--slate);font-size:13.5px;margin:0 0 20px;padding-left:38px;}
+  h3{font-family:'Fraunces',serif;font-size:16px;margin:22px 0 8px;color:var(--ebony);}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 12px;padding-left:22px;}
+  li{margin-bottom:6px;}
+  code, .mono{ font-family:'JetBrains Mono',monospace;font-size:0.88em; background:rgba(139,46,60,0.08);color:var(--burgundy); padding:1px 6px;border-radius:5px;overflow-wrap:anywhere; }
+  :root[data-theme="dark"] code, .mono{ background:rgba(201,162,75,0.14); color:var(--gold-light); }
+  @media (prefers-color-scheme: dark){ code, .mono{ background:rgba(201,162,75,0.14); color:var(--gold-light); } }
+
+  .tag{ display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:999px; font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase; white-space:nowrap; }
+  .tag-new{background:var(--sage);color:var(--white);}
+  .tag-mod{background:var(--gold);color:var(--ebony);}
+  .tag-decided{background:var(--burgundy);color:var(--white);}
+  .tag-open{background:var(--slate);color:var(--white);}
+  .tag-bonus{background:var(--sage);color:var(--white);}
+
+  .flow-card{background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:18px;margin:16px 0;overflow-x:auto;}
+  .mermaid{min-width:560px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.6px;}
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;margin:14px 0;}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  th{ font-size:11px;letter-spacing:0.08em;text-transform:uppercase; color:var(--slate);font-weight:700;background:rgba(139,46,60,0.05); }
+  tr:last-child td{border-bottom:none;}
+
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+  @media (max-width:640px){ .grid2{grid-template-columns:1fr;} }
+  .minicard{ background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:16px 18px;min-width:0; }
+  .minicard h4{margin:0 0 6px;font-family:'Fraunces',serif;font-size:14.5px;}
+  .minicard p{margin:0;color:var(--charcoal);font-size:13.2px;}
+
+  .callout{ border-radius:12px;padding:14px 18px;margin:14px 0;border:1px solid; font-size:13.8px;display:flex;gap:10px;align-items:flex-start; }
+  .callout .icon{flex:none;font-size:16px;line-height:1.4;}
+  .callout-risk{background:rgba(139,46,60,0.07);border-color:rgba(139,46,60,0.25);color:var(--charcoal);}
+  .callout-note{background:rgba(87,121,91,0.08);border-color:rgba(87,121,91,0.28);color:var(--charcoal);}
+  .callout-open{background:rgba(201,162,75,0.10);border-color:rgba(201,162,75,0.4);color:var(--charcoal);}
+
+  .steps{list-style:none;margin:0;padding:0;counter-reset:step;}
+  .steps li{ counter-increment:step;position:relative;padding:8px 0 8px 40px;margin-bottom:2px; border-bottom:1px dashed var(--border);font-size:13.8px; }
+  .steps li:last-child{border-bottom:none;}
+  .steps li::before{ content:counter(step);position:absolute;left:0;top:8px; width:26px;height:26px;border-radius:50%;background:var(--gold);color:var(--ebony); font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center; }
+
+  .decision-row{padding:14px 0;border-bottom:1px solid var(--border);}
+  .decision-row:last-child{border-bottom:none;}
+  .decision-row .d-title{font-weight:600;font-size:13.8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .decision-row .d-why{color:var(--slate);font-size:13px;margin-top:4px;}
+
+  .code-format{ font-family:'JetBrains Mono',monospace;font-size:16.5px; background:var(--ebony);color:var(--gold-light);border-radius:10px;padding:16px 20px; text-align:center;margin:14px 0;overflow-x:auto;white-space:nowrap; }
+  :root[data-theme="dark"] .code-format{ background:#0f0d0c; }
+  @media (prefers-color-scheme: dark){ .code-format{ background:#0f0d0c; } }
+  .code-format .slug{color:var(--gold-light);}
+  .code-format .path{color:var(--burgundy-light);}
+
+  .compare-wrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0;}
+  @media (max-width:760px){ .compare-wrap{grid-template-columns:1fr;} }
+  .compare-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--cream);min-width:0;}
+  .compare-card h4{margin:0 0 8px;font-family:'Fraunces',serif;font-size:14px;}
+  .compare-card p{margin:0;font-size:12.8px;color:var(--charcoal);}
+  .compare-card .verdict{margin-top:8px;font-size:11.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+
+  footer{text-align:center;color:var(--slate);font-size:12.5px;margin-top:40px;}
+  a{color:var(--burgundy);}
+  :root[data-theme="dark"] a{ color:var(--gold-light); }
+  @media (prefers-color-scheme: dark){ a{ color:var(--gold-light); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Piano Snakes &amp; Ladders — Implementation Plan</div>
+    <h1>Per-Account Studio Config</h1>
+    <div class="stave"></div>
+    <p class="subtitle">
+      One shared page, one repo. Each studio gets a directory with their branding and (optionally) their own
+      question bank. You create it, push it, hand them a link — no codes, no accounts, no in-browser editor.
+    </p>
+  </header>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">✦</span>Context</h2>
+      <div class="section-sub">Why this, and what "done" looks like</div>
+
+      <div class="grid2">
+        <div class="minicard">
+          <h4>Goal</h4>
+          <p>Sell this game to other piano studios as a one-time payment, hosted entirely on your existing GitHub Pages site — no per-studio hosting.</p>
+        </div>
+        <div class="minicard">
+          <h4>Current state</h4>
+          <p>One public page with branding and a 30-question Thai bank hardcoded into the JS. Rebranding means hand-editing the file.</p>
+        </div>
+        <div class="minicard">
+          <h4>Desired behavior</h4>
+          <p>The same one page. Each studio's link includes their account slug; the page loads that account's branding + questions from the repo.</p>
+        </div>
+        <div class="minicard">
+          <h4>Who edits what</h4>
+          <p><strong>You</strong> create and edit each account's files in the repo. Studios never touch code — they just open their link.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-note">
+        <span class="icon">↳</span>
+        <div>This replaces the earlier "unlock code + studios self-edit in their browser" direction.
+        That design solved a problem you don't actually have — you already said you want to build studios' custom questions <em>for</em> them, not hand them an editor. Owner-managed per-account files are simpler to build and match how you actually plan to work.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">1</span>Per-account files in the repo</h2>
+      <div class="section-sub">Every studio is a directory; every directory is one JSON file</div>
+
+      <div class="code-format">accounts/<span class="slug">harmony-music</span>/config.json</div>
+
+      <p>Shape mirrors the existing config objects exactly, so nothing new has to be invented:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:160px">Field</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mono">studio.name</span></td><td>Shown above the title and in the browser tab — same shape as the existing <span class="mono">STUDIO</span> object.</td></tr>
+            <tr><td><span class="mono">studio.link</span></td><td>Optional; empty string renders the name as plain text.</td></tr>
+            <tr><td><span class="mono">questions</span></td><td><strong>Optional.</strong> Omit it entirely and the studio gets your standard 30-question bank by default. Include a full array (same shape as <span class="mono">QUESTION_BANK</span>: <span class="mono">{q, options[4], correct, visual?}</span>) only for studios who paid for custom content.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Onboarding a new studio</h3>
+      <ol class="steps">
+        <li>Get paid.</li>
+        <li>Create <span class="mono">accounts/&lt;slug&gt;/config.json</span> — copy the template, fill in their name/link. Add a <span class="mono">questions</span> array only if they bought custom content.</li>
+        <li>Commit, push to <span class="mono">main</span> — GitHub Pages redeploys in about a minute, same as every change so far this project.</li>
+        <li>Send them their link: <span class="mono">sping128.github.io/piano-snakes-and-ladders/?studio=&lt;slug&gt;</span></li>
+      </ol>
+      <p>Optional convenience: <span class="mono">tools/scaffold-account.js &lt;slug&gt; "Studio Name" "https://link"</span> generates the file from a template instead of hand-writing JSON — a nice-to-have, not required for v1.</p>
+
+      <div class="callout callout-note">
+        <span class="icon">✓</span>
+        <div><strong>Bonus this design gets you for free:</strong> access is revocable. Delete or rename an account's folder and their link quietly falls back to the default demo — something the unlock-code approach explicitly couldn't do.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">2</span>How a page picks its account</h2>
+      <div class="section-sub">URL parameter → fetch → validate → override, or fall back to the default demo</div>
+
+      <div class="flow-card">
+        <pre class="mermaid">
+flowchart TD
+  A["Studio opens their link\n?studio=&lt;slug&gt;"] --> B{"studio param\npresent &amp; safe?"}
+  B -- No --> C["Boot with default demo\n(your branding + built-in 30 questions)"]
+  B -- Yes --> D["fetch accounts/&lt;slug&gt;/config.json"]
+  D --> E{"Fetch OK &amp;\nvalid shape?"}
+  E -- No --> C
+  E -- Yes --> F{"Config includes\ncustom questions?"}
+  F -- No --> G["Apply their branding\n+ default 30-question bank"]
+  F -- Yes --> H["Apply their branding\n+ their custom question bank"]
+  G --> I["Rest of app boots:\nboard, setup screen, etc."]
+  H --> I
+  C --> I
+        </pre>
+      </div>
+
+      <h3>Slug safety</h3>
+      <p>The slug drives a fetch path, so it must be restricted before use — e.g. <span class="mono">/^[a-z0-9-]+$/</span> — to rule out path traversal like <span class="mono">?studio=../../secrets</span>. Anything that doesn't match falls back to the default demo, same as a missing param.</p>
+
+      <h3>Boot order becomes async</h3>
+      <p>Today's boot runs synchronously top-to-bottom. Loading a config now means a <span class="mono">fetch()</span>, so the existing init (build the preview board, wire up buttons, <span class="mono">restoreSavedGame()</span>, etc.) needs to <span class="mono">await</span> the account lookup first. Same-origin JSON fetches are fast, but to avoid a flash of default branding before the real one applies, keep the page shell hidden (a simple opacity fade) until the lookup resolves.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">3</span>Runtime integration</h2>
+      <div class="section-sub">Same override mechanism as before, different trigger</div>
+      <p><span class="mono">STUDIO</span> and <span class="mono">QUESTION_BANK</span> change from <span class="mono">const</span> to <span class="mono">let</span> — every existing call site reads them live by identifier, so reassignment is safe.</p>
+      <p>A new async <span class="mono">loadAccountOverride()</span> runs at boot: reads <span class="mono">?studio=</span> from the URL, validates the slug, fetches the config, validates its shape with the same all-or-nothing <span class="mono">validateStudioConfig()</span> style already used for the existing game-save restore, and reassigns <span class="mono">STUDIO</span>/<span class="mono">QUESTION_BANK</span> only on success. Any failure — no param, bad slug, 404, malformed JSON — falls through to today's hardcoded defaults untouched.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">!</span>Open question — needs your call</h2>
+      <div class="section-sub">Not resolved. Annotate this section or reply below to decide.</div>
+      <div class="callout callout-open">
+        <span class="icon">?</span>
+        <div>GitHub Pages on the free tier requires the repo to stay <strong>public</strong>. That means <span class="mono">accounts/</span> — every customer's directory name, and any custom question content you write for them — is browsable by anyone on GitHub, not just people with the direct link. Three ways to handle it:</div>
+      </div>
+
+      <div class="compare-wrap">
+        <div class="compare-card">
+          <h4>Accept it</h4>
+          <p>Do nothing extra. For a niche classroom tool, the realistic odds of a competitor studio browsing your repo tree are low.</p>
+          <div class="verdict" style="color:var(--sage);">Simplest</div>
+        </div>
+        <div class="compare-card">
+          <h4>Go private</h4>
+          <p>Make the repo private. GitHub Pages from a private repo needs a paid personal plan — or switch to Cloudflare Pages/Netlify, both free and both support private-repo deploys.</p>
+          <div class="verdict" style="color:var(--burgundy);">Most private, more setup</div>
+        </div>
+        <div class="compare-card">
+          <h4>Opaque slugs</h4>
+          <p>Use a random slug instead of the studio's name as the directory (e.g. <span class="mono">a83f2c</span> instead of <span class="mono">harmony-music</span>). Hides identity in the URL/repo tree, but anyone browsing <span class="mono">accounts/</span> can still open any folder and read its content.</p>
+          <div class="verdict" style="color:var(--gold);">Partial, no extra cost</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">✎</span>Critical files</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th style="width:170px">Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mono">index.html</span></td><td><span class="tag tag-mod">Modified</span></td></tr>
+            <tr><td><span class="mono">accounts/&lt;slug&gt;/config.json</span></td><td><span class="tag tag-new">New</span> · one per studio, created per sale</td></tr>
+            <tr><td><span class="mono">accounts/_template/config.json</span></td><td><span class="tag tag-new">New</span> · starting point for each new account</td></tr>
+            <tr><td><span class="mono">tools/scaffold-account.js</span></td><td><span class="tag tag-new">New</span> · optional convenience script</td></tr>
+            <tr><td><span class="mono">README.md</span></td><td><span class="tag tag-mod">Modified</span> — document the account directory + onboarding steps</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="num">▶</span>Verification plan</h2>
+      <div class="section-sub">No test framework exists — verified the same way every change has been verified so far: a headless Playwright script against the real rendered page</div>
+      <ol class="steps">
+        <li>No <span class="mono">?studio=</span> param → default branding + built-in 30 questions, unchanged from today.</li>
+        <li>Unsafe slug (e.g. <span class="mono">../x</span>) → falls back to default, no fetch attempted outside <span class="mono">accounts/</span>.</li>
+        <li>Valid slug, account has branding only (no <span class="mono">questions</span>) → branding overridden, question bank still the default 30.</li>
+        <li>Valid slug, account has custom <span class="mono">questions</span> → branding <em>and</em> questions overridden; play to a ladder/snake and confirm the quiz pulls from the custom bank, not the default — proves game logic reads the override, not just a preview panel.</li>
+        <li>Nonexistent slug (valid format, no matching folder) → fetch 404s → falls back to default demo, no error shown to the visitor.</li>
+        <li>Malformed <span class="mono">config.json</span> (e.g. a question missing an option) → rejected by <span class="mono">validateStudioConfig()</span>, falls back to default rather than half-applying.</li>
+        <li>Full regression: play a complete game to a win on an account with custom questions — reset-confirm, save/resume, and win-flow all still work unchanged.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    Piano Snakes &amp; Ladders — implementation plan, drafted for review before any code changes.
+  </footer>
+
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const paint = document.createElement("canvas").getContext("2d");
+  function toRgba(color) {
+    paint.clearRect(0, 0, 1, 1); paint.fillStyle = "#000"; paint.fillStyle = color; paint.fillRect(0, 0, 1, 1);
+    return paint.getImageData(0, 0, 1, 1).data;
+  }
+  function compositeRgba(fg, bg) {
+    const fa = fg[3] / 255, ba = bg[3] / 255, alpha = fa + ba * (1 - fa);
+    if (alpha === 0) return [0, 0, 0, 0];
+    return [ (fg[0]*fa + bg[0]*ba*(1-fa))/alpha, (fg[1]*fa + bg[1]*ba*(1-fa))/alpha, (fg[2]*fa + bg[2]*ba*(1-fa))/alpha, alpha*255 ];
+  }
+  function pageIsDark() {
+    const root = document.documentElement;
+    const rootBg = toRgba(getComputedStyle(root).backgroundColor);
+    const bodyBg = document.body ? toRgba(getComputedStyle(document.body).backgroundColor) : [0,0,0,0];
+    const [r,g,b,a] = compositeRgba(bodyBg, rootBg);
+    if (a > 0) return (0.2126*r + 0.7152*g + 0.0722*b)/255 < 0.5;
+    return darkQuery.matches;
+  }
+  const diagrams = [...document.querySelectorAll(".mermaid")].map((el) => ({ el, src: el.textContent }));
+  let applied, rendering = false, queued = false;
+  function queueRender() { queued = true; if (!rendering) void render(); }
+  async function render() {
+    rendering = true;
+    try {
+      while (queued) {
+        queued = false;
+        const theme = pageIsDark() ? "dark" : "default";
+        if (theme === applied) continue;
+        mermaid.initialize({ startOnLoad: false, theme, securityLevel: "strict" });
+        for (const { el, src } of diagrams) { el.removeAttribute("data-processed"); el.textContent = src; }
+        try { await mermaid.run({ nodes: diagrams.map((d) => d.el) }); }
+        catch (e) { console.error("Mermaid render failed:", e); return; }
+        applied = theme;
+      }
+    } finally { rendering = false; if (queued) queueRender(); }
+  }
+  if (document.readyState === "complete") queueRender();
+  else window.addEventListener("load", queueRender, { once: true });
+  const themeObserver = new MutationObserver(queueRender);
+  for (const el of [document.documentElement, document.body]) {
+    if (!el) continue;
+    themeObserver.observe(el, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+  }
+  darkQuery.addEventListener("change", queueRender);
+</script>
+</body>
+</html>
