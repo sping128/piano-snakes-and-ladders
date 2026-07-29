@@ -797,7 +797,7 @@
         <div class="eyebrow" id="studioName"></div>
         <h1>Piano Snakes &amp; Ladders</h1>
         <div class="stave"></div>
-        <p class="subtitle">
+        <p class="subtitle" id="subtitle">
           A 25-square race for up to 15 players. Land on a ladder and answer
           correctly to climb — land on a snake and answer correctly to avoid the
           slide. Reach square 25 and one last question decides the winner.
@@ -1588,6 +1588,7 @@
         usedQuestions = [];
 
         document.getElementById("setupScreen").classList.add("hidden");
+        document.getElementById("subtitle").classList.add("hidden");
         document.getElementById("gameScreen").classList.remove("hidden");
         buildBoard();
         renderAll();
@@ -2172,6 +2173,7 @@
         document.getElementById("winScreen").classList.add("hidden");
         document.getElementById("gameScreen").classList.add("hidden");
         document.getElementById("setupScreen").classList.remove("hidden");
+        document.getElementById("subtitle").classList.remove("hidden");
         refreshPreview();
       }
       function gameInProgress() {
@@ -2256,6 +2258,7 @@
         SNAKES = data.snakes || {};
 
         document.getElementById("setupScreen").classList.add("hidden");
+        document.getElementById("subtitle").classList.add("hidden");
         document.getElementById("gameScreen").classList.remove("hidden");
         buildBoard();
         renderAll();
